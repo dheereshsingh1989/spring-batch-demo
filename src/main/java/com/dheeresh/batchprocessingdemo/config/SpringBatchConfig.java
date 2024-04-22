@@ -17,6 +17,8 @@ import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 
 @Configuration
 @EnableBatchProcessing
@@ -32,7 +34,7 @@ public class SpringBatchConfig {
     @Bean   // 1.  Configuring the reader object
     public FlatFileItemReader<Customer> reader() {
         FlatFileItemReader<Customer> itemReader = new FlatFileItemReader<>();
-        itemReader.setResource(new FileSystemResource("src/main/resource/customers-10000.csv"));
+        itemReader.setResource(new FileSystemResource("src/main/resources/customers-10000.csv"));
         itemReader.setName("CSVReader");
         itemReader.setLinesToSkip(1); // skipping the headers of CSV file.
         itemReader.setLineMapper(lineMapper());
@@ -80,6 +82,7 @@ public class SpringBatchConfig {
                 .reader(reader())
                 .processor(processor())
                 .writer(writer())
+                .taskExecutor(taskExecutor())
                 .build();
     }
 
@@ -88,6 +91,13 @@ public class SpringBatchConfig {
         return jobBuilderFactory.get("importCustomers")
                 .flow(step1())
                 .end().build();
+    }
+
+    @Bean
+    public TaskExecutor taskExecutor() {
+        SimpleAsyncTaskExecutor asyncTaskExecutor = new SimpleAsyncTaskExecutor();
+        asyncTaskExecutor.setConcurrencyLimit(10);
+        return asyncTaskExecutor;
     }
 
 }
